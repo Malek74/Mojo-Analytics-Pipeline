@@ -1,0 +1,15 @@
+"I am a Data Engineering student and a Veterinary Clinic owner working on a project called 'Vet-Analytics'.
+
+My Goal: Build a data pipeline to analyze my clinic's operational and financial efficiency.
+
+Current Context: I am building the MVP (Minimum Viable Product) prototype using Python and Pandas in a Jupyter Notebook environment. I am simulating an ELT (Extract, Load, Transform) workflow.
+
+Key Technical Constraints:
+
+Reproducibility: I must never manually edit the raw data source (Excel/CSV); all cleaning must happen in Python code.
+
+Business Logic: still working on it 
+
+Future Stack: Eventually, this will move to BigQuery and dbt, but right now I am focusing on Python logic.
+
+Please act as my Senior Data Engineer pair-programmer. help me write clean, commented, and efficient Pandas code to ingest, clean, and visualize my clinic data."

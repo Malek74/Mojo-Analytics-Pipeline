@@ -17,6 +17,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def assign_doctor(service):
+    service=service.split("-")
+    if len(service)<2 or service[1]=="":
+        return "NA"
+    return service[1]
+
 def clean_clients_data(raw_data_dir, clean_data_dir):
     """
     Load and process clients data from raw Excel file.
@@ -101,6 +107,8 @@ def clean_services_data(raw_data_dir, clean_data_dir):
         services_df["cost"] = pd.to_numeric(services_df["cost"], errors='coerce')
         services_df["sale_price"] = pd.to_numeric(services_df["sale_price"], errors='coerce')
         services_df = services_df.dropna(subset=["sale_price"])
+        services_df['doctor'] = services_df['service'].map(assign_doctor)
+        services_df['service'] = services_df['service'].map(lambda x: "كشف" if "كشف" in str(x) else x)
         
         # Save cleaned data
         os.makedirs(clean_data_dir, exist_ok=True)
@@ -176,9 +184,13 @@ def print_loading_summary(clients_df, pets_df, services_df, revenue_df, inventor
 
 def main():
     """Main execution function to load all datasets."""
-    timestamp = datetime.now().strftime("%Y%m%d")
-    raw_data_dir = os.path.join(DATASETS_DIR, f"raw/{timestamp}")
-    clean_data_dir = os.path.join(DATASETS_DIR, f"clean/{timestamp}")
+    now = datetime.now()
+    year = now.strftime("%Y")
+    month = now.strftime("%m")
+    day = now.strftime("%d")
+
+    raw_data_dir = os.path.join(DATASETS_DIR, "raw", year, month, day)
+    clean_data_dir = os.path.join(DATASETS_DIR, "clean", year, month, day)
     
     # Check if raw data directory exists
     if not os.path.exists(raw_data_dir):

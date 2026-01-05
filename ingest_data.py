@@ -104,12 +104,18 @@ def save_data(data_package, filename_base):
         return None
 
     try:
-        timestamp = datetime.now().strftime("%Y%m%d")
-        os.makedirs(DATASETS_DIR+f"/raw/{timestamp}", exist_ok=True)
+        # Create directory structure: data/raw/YYYY/MM/DD
+        now = datetime.now()
+        year = now.strftime("%Y")
+        month = now.strftime("%m")
+        day = now.strftime("%d")
+
+        target_dir = os.path.join(DATASETS_DIR, "raw", year, month, day)
+        os.makedirs(target_dir, exist_ok=True)
         
         # CASE 1: BINARY FILE (Excel)
         if data_package.get("type") == "file":
-            filepath = os.path.join(DATASETS_DIR+f"/raw/{timestamp}", f"{filename_base}.xlsx")
+            filepath = os.path.join(target_dir, f"{filename_base}.xlsx")
             with open(filepath, "wb") as f:
                 f.write(data_package["content"])
             logger.info(f"💾 Data saved to: {filepath}")
@@ -129,7 +135,7 @@ def save_data(data_package, filename_base):
                 if not records: records = [data]
 
             df = pd.DataFrame(records)
-            filepath = os.path.join(DATASETS_DIR, f"{filename_base}_{timestamp}.xlsx")
+            filepath = os.path.join(target_dir, f"{filename_base}.xlsx")
             df.to_excel(filepath, index=False)
             logger.info(f"JSON converted and saved to: {filepath}")
             return filepath

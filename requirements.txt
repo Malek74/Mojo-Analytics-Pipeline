@@ -1,0 +1,11 @@
+streamlit
+pandas
+plotly
+arabic-reshaper
+python-bidi
+openpyxl
+requests
+python-dotenv
+numpy
+matplotlib
+seaborn

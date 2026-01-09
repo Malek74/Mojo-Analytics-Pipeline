@@ -1,12 +1,7 @@
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import logging
 from datetime import datetime
-import arabic_reshaper
-from bidi.algorithm import get_display
 from Constants import DATASETS_DIR
 
 logging.basicConfig(

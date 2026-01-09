@@ -43,6 +43,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 CLEAN_DATA_ROOT = os.path.join(os.getcwd(), "data", "clean")
+DATABASE_DIR = os.path.join(os.getcwd(), "database")
 
 # ==========================================
 # 2. HELPER FUNCTIONS
@@ -74,7 +75,7 @@ def create_zip_export(latest_dir):
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for filename in ["revenue.csv", "clients.csv", "services.csv", "pets.csv", "expenses.csv"]:
-            file_path = os.path.join(latest_dir, filename)
+            file_path = os.path.join(DATABASE_DIR, filename)
             if os.path.exists(file_path):
                 zip_file.write(file_path, filename)
     zip_buffer.seek(0)
@@ -91,7 +92,7 @@ def load_data():
         "expenses": "expenses.csv" # Added Expenses
     }
     
-    latest_dir = get_latest_data_dir()
+    latest_dir = DATABASE_DIR
     
     if latest_dir is None:
         st.error("⚠️ No data found. Run pipeline first.")
@@ -198,77 +199,26 @@ if page == "🏠 Overview":
 
     st.markdown("---")
     
-    # Profit Trend
-    st.subheader("Profitability Trend")
+    # Revenue Trend
+    st.subheader("Revenue Trend Over Time")
     if not rev_filtered.empty:
         # Aggregate Revenue
         daily_rev = rev_filtered.set_index('creation_date').resample('W')['paid'].sum().reset_index()
         daily_rev.columns = ['date', 'amount']
-        daily_rev['type'] = 'Revenue'
         
-        # Aggregate Expenses (if any)
-        if not expenses_filtered.empty:
-            daily_exp = expenses_filtered.set_index(exp_date_col).resample('W')['amount'].sum().reset_index()
-            daily_exp.columns = ['date', 'amount']
-            daily_exp['type'] = 'Expense'
-            combined = pd.concat([daily_rev, daily_exp])
-        else:
-            combined = daily_rev
-            
-        fig = px.bar(combined, x='date', y='amount', color='type', barmode='group', 
-                     color_discrete_map={'Revenue': '#00CC96', 'Expense': '#EF553B'})
+        fig = px.line(daily_rev, x='date', y='amount', 
+                      color_discrete_sequence=['#00CC96'],
+                      labels={'date': 'Date', 'amount': 'Revenue (EGP)'})
+        fig.update_traces(line=dict(width=3))
         st.plotly_chart(fig, use_container_width=True)
 
 elif page == "💸 Financial Performance":
     st.title("💸 Financial Performance")
-    
-    tab_pl, tab_rev, tab_exp, tab_debt = st.tabs(["💰 P&L", "📈 Revenue", "💸 Expenses", "⚠️ Debt"])
-    
-    with tab_pl:
-        st.subheader("Profit & Loss Summary")
-        col1, col2 = st.columns(2)
-        
-        rev_total = rev_filtered['paid'].sum() if not rev_filtered.empty else 0
-        exp_total = expenses_filtered['amount'].sum() if not expenses_filtered.empty else 0
-        
-        # Donut Chart: Revenue vs Expenses
-        labels = ['Revenue', 'Expenses']
-        values = [rev_total, exp_total]
-        fig_donut = px.pie(values=values, names=labels, hole=0.6, color_discrete_sequence=['#00CC96', '#EF553B'])
-        col1.plotly_chart(fig_donut, use_container_width=True)
-        
-        with col2:
-            st.metric("Net Profit Margin", f"{((rev_total-exp_total)/rev_total*100):.1f}%" if rev_total > 0 else "0%")
-            st.metric("Total Inflow", f"{rev_total:,.0f}")
-            st.metric("Total Outflow", f"{exp_total:,.0f}")
-
-    with tab_rev:
-        st.subheader("Revenue Analysis")
-        if not rev_filtered.empty:
-            st.dataframe(rev_filtered.head(5), use_container_width=True)
-            daily_trend = rev_filtered.set_index('creation_date').resample('D')['paid'].sum().reset_index()
-            fig_rev = px.line(daily_trend, x='creation_date', y='paid', title="Daily Revenue")
-            st.plotly_chart(fig_rev, use_container_width=True)
-
-    with tab_exp:
-        st.subheader("Expense Breakdown")
-        if not expenses_filtered.empty:
-            # Assuming expenses has 'category' and 'amount'
-            if 'category' in expenses_filtered.columns:
-                cat_exp = expenses_filtered.groupby('category')['amount'].sum().reset_index()
-                fig_exp = px.bar(cat_exp, x='amount', y='category', orientation='h', color='amount')
-                st.plotly_chart(fig_exp, use_container_width=True)
-            st.dataframe(expenses_filtered, use_container_width=True)
-        else:
-            st.info("ℹ️ No expenses data available yet. Ensure 'expenses.csv' is in the processed folder.")
-
-    with tab_debt:
-        if not rev_filtered.empty:
-            st.subheader("Outstanding Debts")
-            debtors = rev_filtered.groupby('client')['debit'].sum().sort_values(ascending=False).head(10).reset_index()
-            fig_debt = px.bar(debtors, x='debit', y='client', orientation='h', color='debit', color_continuous_scale='Reds')
-            st.plotly_chart(fig_debt, use_container_width=True)
-
+    kpi1,kpi2,kpi3=st.columns(3)
+     #TODO: mean bill amount from sevuce or revenue?
+    kpi1.metric("Mean Bill Amount", f"{rev_filtered['paid'].mean():,.0f} EGP")
+    kpi2.metric("Mean Bill Cost", f"{services_filtered['cost'].mean():,.0f} EGP")
+    kpi3.metric("Number of Bills", f"{len(rev_filtered):,.0f}")
 elif page == "🩺 Operations":
     st.title("🩺 Operations")
     if not services_filtered.empty:
@@ -305,22 +255,22 @@ elif page == "👥 Clients":
     # KPIs
     kpi1, kpi2, kpi3 = st.columns(3)
     
-    total_clients = len(clients_filtered) if not clients_filtered.empty else 0
+    total_clients = len(clients_df) if not clients_df.empty else 0
     clients_with_debt = revenue_df[revenue_df['debit'] > 0]['client'].nunique() if not revenue_df.empty else 0
-    active_clients = clients_df[clients_df['status']=='Active'].count()[0]
+    active_clients = clients_filtered[clients_filtered['status']=='Active'].count()[0]
     
     # Group by date to see client growth over time
     if not clients_filtered.empty:
-        clients_growth = clients_filtered.set_index('creation_date').resample('D').size().reset_index(name='New Clients')
-    
-    kpi1.metric("Total New Clients", total_clients)
-    kpi2.metric("Active Clients", active_clients)
+        three_months_ago = clients_df['creation_date'].max() - pd.DateOffset(months=3)
+        clients_growth = clients_df[clients_df['creation_date'] >= three_months_ago].groupby('creation_date').size().reset_index(name='New Clients')
+    kpi1.metric("Total Clients", total_clients)
+    kpi2.metric("New Clients", active_clients)
     kpi3.metric("Clients with Debt", clients_with_debt)
     
     st.markdown("---")
     
     # Client Growth
-    if not clients_filtered.empty:
+    if not clients_growth.empty:
         fig_growth = px.line(clients_growth, x='creation_date', y='New Clients', title="Client Growth", color_discrete_sequence=['#00CC96'])
         st.plotly_chart(fig_growth, use_container_width=True)        
     

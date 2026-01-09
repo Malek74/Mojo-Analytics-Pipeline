@@ -1,0 +1,54 @@
+name: Weekly Data Pipeline
+
+on:
+  schedule:
+    # Run at 00:00 UTC (02:00 Cairo) every Monday
+    - cron: "0 0 * * 1"
+  # Allow manual trigger button in GitHub UI for testing
+  workflow_dispatch:
+
+jobs:
+  run_pipeline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to push changes back to repo
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Dependencies
+        run: |
+          pip install pandas requests python-dotenv openpyxl arabic-reshaper python-bidi plotly streamlit
+
+      - name: Run Ingestion (Fetch New Data)
+        env:
+          # Add these secrets in GitHub Repo Settings -> Secrets and Variables -> Actions
+          EMAIL_OR_USERNAME: ${{ secrets.EMAIL_OR_USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          CLINIC_CODE: ${{ secrets.CLINIC_CODE }}
+        run: python ingest_data.py
+
+      - name: Run Transformation (Merge & Dedupe)
+        run: python process_data.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+
+          # Add the processed data
+          git add database/*.csv
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "🤖 Auto-update: Weekly Data Pipeline [$(date)]"
+            git push
+          fi

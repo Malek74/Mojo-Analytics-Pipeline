@@ -36,7 +36,7 @@ def clean_clients_data(raw_data_dir, clean_data_dir):
     """
     try:
         logger.info("Loading Clients Data...")
-        clients_df = pd.read_excel(os.path.join(raw_data_dir, "clients.xlsx"), skiprows=5, usecols=[1,2,3,4,5])
+        clients_df = pd.read_excel(os.path.join(raw_data_dir, "clients.xlsx"), skiprows=4, usecols=[1,2,3,4,5])
         clients_df.columns = ["name", "id", "phone", "creation_date", "status"]
         clients_df["creation_date"] = pd.to_datetime(clients_df["creation_date"])
         clients_df["phone"] = clients_df["phone"].astype(str).str.split(".").str[0]
@@ -181,7 +181,35 @@ def print_loading_summary(clients_df, pets_df, services_df, revenue_df, inventor
     logger.info(f"Expenses: {'❌ Not loaded' if expenses_df is None else '✅ Loaded'}")
     logger.info("="*50 + "\n")
 
+def merge_and_save(clients_df, pets_df, services_df, revenue_df):
+    
+    #load master data
+    database_dir = os.path.join(os.getcwd(), "database")
+    db_clients = pd.read_csv(os.path.join(database_dir, "clients.csv"))
+    db_pets = pd.read_csv(os.path.join(database_dir, "pets.csv"))
+    db_services = pd.read_csv(os.path.join(database_dir, "services.csv"))
+    db_revenue = pd.read_csv(os.path.join(database_dir, "revenue.csv"))
 
+    #extend data
+    clients_df = pd.concat([clients_df, db_clients], ignore_index=True)
+    pets_df = pd.concat([pets_df, db_pets], ignore_index=True)
+    services_df = pd.concat([services_df, db_services], ignore_index=True)
+    revenue_df = pd.concat([revenue_df, db_revenue], ignore_index=True)
+
+    #remove any duplicates 
+    clients_df=clients_df.drop_duplicates(subset=["id"])
+    pets_df=pets_df.drop_duplicates(subset=["code"])
+    revenue_df=revenue_df.drop_duplicates(subset=["invoice_code"])
+    services_df = services_df.drop_duplicates()
+
+    #save extended data
+    clients_df.to_csv(os.path.join(database_dir, "clients.csv"), index=False)
+    pets_df.to_csv(os.path.join(database_dir, "pets.csv"), index=False)
+    services_df.to_csv(os.path.join(database_dir, "services.csv"), index=False)
+    revenue_df.to_csv(os.path.join(database_dir, "revenue.csv"), index=False)
+
+    
+    
 def main():
     """Main execution function to load all datasets."""
     now = datetime.now()
@@ -212,6 +240,9 @@ def main():
     
     # Print summary
     print_loading_summary(clients_df, pets_df, services_df, revenue_df, inventory_df, expenses_df)
+    
+    #extend data
+    merge_and_save(clients_df, pets_df, services_df, revenue_df)
     
     return clients_df, pets_df, services_df, revenue_df, inventory_df, expenses_df
 

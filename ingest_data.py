@@ -156,10 +156,9 @@ def ingest_data():
         if token:
             logger.info("="*50)
             
-            # Dynamic Dates (Last 30 Days)
+            # Dynamic Dates (Last 7 Days)
             today = datetime.now()
-            thirty_days_ago = today - timedelta(days=30)
-            
+            thirty_days_ago = today - timedelta(days=7)
             date_to_str = today.strftime("%Y-%m-%d")
             date_from_str = thirty_days_ago.strftime("%Y-%m-%d")
             

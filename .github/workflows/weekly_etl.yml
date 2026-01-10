@@ -41,17 +41,18 @@ jobs:
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "actions@github.com"
 
-          # Add the processed data
-          git add database/*.csv
+          # Add all changes (respecting .gitignore)
+          git add .
 
           # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "🤖 Auto-update: Weekly Data Pipeline [$(date)]"
+            # Pull remote changes first to avoid conflicts
+            git pull --rebase origin main || true
             
-            # Pull any remote changes and rebase before pushing
-            git pull --rebase origin main
+            # Now commit our changes
+            git commit -m "🤖 Auto-update: Weekly Data Pipeline [$(date)]"
             
             git push
           fi

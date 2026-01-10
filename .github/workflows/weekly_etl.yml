@@ -25,6 +25,12 @@ jobs:
         run: |
           pip install pandas requests python-dotenv openpyxl arabic-reshaper python-bidi plotly streamlit
 
+      - name: Pull Latest Changes
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+          git pull origin main
+
       - name: Run Ingestion (Fetch New Data)
         env:
           # Add these secrets in GitHub Repo Settings -> Secrets and Variables -> Actions
@@ -48,11 +54,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            # Pull remote changes first to avoid conflicts
-            git pull --rebase origin main || true
-            
-            # Now commit our changes
             git commit -m "🤖 Auto-update: Weekly Data Pipeline [$(date)]"
-            
             git push
           fi

@@ -104,7 +104,7 @@ def load_data():
         if os.path.exists(path):
             data[key] = pd.read_csv(path)
             if "creation_date" in data[key].columns:
-                data[key]["creation_date"] = pd.to_datetime(data[key]["creation_date"])
+                data[key]["creation_date"] = pd.to_datetime(data[key]["creation_date"],format='%Y-%m-%d')
             # Assuming expenses has a date column too
             elif key == "expenses" and "date" in data[key].columns:
                  data[key]["date"] = pd.to_datetime(data[key]["date"])
